@@ -1,0 +1,4 @@
+[[keyboard.bindings]]
+key = "P"
+mods = "Command"
+chars = "\u0002G"

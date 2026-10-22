@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "\"$HOME/.tmux/plugins/tmux-gitlab-pipeline/scripts/run.sh\" context --hook", "timeout": 3}]}],
+    "CwdChanged": [{"hooks": [{"type": "command", "command": "\"$HOME/.tmux/plugins/tmux-gitlab-pipeline/scripts/run.sh\" context --hook", "timeout": 3}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "\"$HOME/.tmux/plugins/tmux-gitlab-pipeline/scripts/run.sh\" context --hook", "timeout": 3}]}]
+  }
+}

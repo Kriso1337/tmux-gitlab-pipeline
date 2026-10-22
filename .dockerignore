@@ -1,0 +1,9 @@
+.git
+.env*
+bin
+dist
+work
+vendor
+node_modules
+target
+coverage.out

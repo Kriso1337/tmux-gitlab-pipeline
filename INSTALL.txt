@@ -1,0 +1,203 @@
+tmux-gitlab-pipeline 0.5.0
+
+GitLab CI и GitHub Actions в попапе tmux для текущей ветки и worktree.
+macOS/Linux, ARM64/AMD64. Готовые релизы не требуют Go или Docker.
+Исходники: https://github.com/Kriso1337/tmux-gitlab-pipeline
+
+УСТАНОВКА ЧЕРЕЗ TPM
+
+Нужны tmux 3.3+, git, ps, curl и glab для GitLab / gh для GitHub.
+На macOS: brew install tmux glab gh
+Браузер: системный open на macOS, xdg-open на Linux.
+Авторизация остаётся в CLI:
+
+    glab auth login --hostname gitlab.example.com
+    gh auth login --hostname github.com
+
+Подставьте свой GitLab-хост. Секреты в конфиг плагина не добавляются.
+В ~/.tmux.conf перед строкой запуска TPM:
+
+    set -g @plugin 'Kriso1337/tmux-gitlab-pipeline'
+
+Нажмите prefix + I. При первом запуске плагин скачает бинарник 0.5.0
+для вашей платформы и проверит SHA-256 из GitHub Release.
+TPM: https://github.com/tmux-plugins/tpm
+
+УСТАНОВКА ИЗ АРХИВА
+
+Скачайте all-platforms или архив своей платформы из GitHub Releases.
+Для проверки скачайте SHA256SUMS из того же релиза:
+
+    cd ~/Downloads
+    shasum -a 256 -c SHA256SUMS --ignore-missing
+    mkdir -p ~/.tmux/plugins
+    tar -xzf tmux-gitlab-pipeline_0.5.0_all-platforms.tar.gz -C ~/.tmux/plugins
+
+На Linux можно использовать sha256sum -c SHA256SUMS --ignore-missing.
+В конфиг tmux добавьте:
+
+    run-shell ~/.tmux/plugins/tmux-gitlab-pipeline/gitlab-pipeline.tmux
+
+Перечитайте изменённый конфиг: tmux source-file ~/.tmux.conf
+Диагностика: ~/.tmux/plugins/tmux-gitlab-pipeline/scripts/run.sh doctor
+
+НАСТРОЙКИ
+
+    set -g @gitlab-pipeline-key G
+    set -g @gitlab-pipeline-width 140
+    set -g @gitlab-pipeline-height 32
+    set -g @gitlab-pipeline-provider auto
+    set -g @gitlab-pipeline-theme auto
+    set -g @gitlab-pipeline-icons unicode
+    set -g @gitlab-pipeline-interval 5s
+    set -g @gitlab-pipeline-motion on
+    set -g @gitlab-pipeline-status on
+    set -g @gitlab-pipeline-notify on
+
+Разместите настройки перед подключением плагина / запуском TPM.
+Шорткат по умолчанию: prefix + Shift+G. Чужая привязка не перезаписывается.
+Для GitHub Enterprise задайте provider github, для SSH alias — host:
+
+    set -g @gitlab-pipeline-host gitlab.example.com
+
+Опционально: @gitlab-pipeline-remote origin, @gitlab-pipeline-repo /path/to/worktree.
+Иконки: unicode, nerd или ascii. Nerd Font выбирается в терминале;
+плагин не устанавливает и не меняет шрифты. Тема: auto, dark, light.
+Индикатор CI дописывается к status-right, существующий текст сохраняется.
+status off удаляет только добавленный фрагмент. При включении индикатора
+интервал statusbar уменьшается до 5 секунд, если был больше.
+Уведомления о завершении видны в tmux. Для отключения: notify off.
+
+COMMAND+P НА MACOS
+
+В Alacritty для стандартного prefix Ctrl+B:
+
+    [[keyboard.bindings]]
+    key = "P"
+    mods = "Command"
+    chars = "\u0002G"
+
+Для prefix Ctrl+A: chars = "\u0001G".
+В другом терминале назначьте Command+P на отправку prefix + G.
+Терминал должен работать внутри tmux.
+
+КЛАВИШИ
+
+    ←→ / h,l   стадия
+    ↑↓ / k,j   job
+    Enter      лог выбранной job
+    Esc        назад / закрыть
+    ?          меню всех действий
+    d          сообщения об ошибках с контекстом из последних 1 МиБ лога
+    H          история 20 запусков текущей ветки / MR / workflow
+    c          сравнение статусов и времени jobs с предыдущим запуском
+    x          артефакты; Enter скачивает в ~/Downloads/ci-pipelines
+    t          отчёты тестов и покрытие
+    R          повторить выбранную завершённую job
+    F          повторить все упавшие jobs
+    s          manual job в GitLab / workflow_dispatch в GitHub
+    m          MR / PR текущей ветки в браузере по умолчанию
+    w          выбрать worktree, ввод текста фильтрует список
+    r          принудительно обновить
+    p          следующий pipeline / workflow
+    a          автоматический выбор последнего запуска
+
+В истории: Enter открывает запуск, c сравнивает выбранный с текущим.
+Перезапуски и ручной запуск требуют y на экране подтверждения.
+GitHub при повторе одной job также перезапускает её зависимости.
+workflow_dispatch требует поддержки этого события в YAML workflow;
+обязательные inputs вводятся JSON-объектом со строковыми значениями.
+Пустая строка использует defaults. API-ошибка показывается в попапе.
+
+В логах: / поиск, n следующее совпадение, f следование,
+PgUp/PgDown, Home/End прокрутка, ←→ горизонтальная прокрутка.
+GitHub публикует полный лог после завершения job; во время выполнения
+плагин постоянно обновляет статусы шагов и затем загружает итоговый лог.
+Разбор ошибки показывает совпадения в логе, не выдаёт догадки за причину.
+
+ОТЧЁТЫ И АРТЕФАКТЫ
+
+GitLab: API test_report, coverage pipeline и опубликованные job artifacts.
+GitHub: артефакты с test/junit/coverage в имени, содержащие JUnit XML,
+Cobertura XML, LCOV (.info) или coverage-summary.json. До 8 артефактов,
+ZIP до 16 МиБ, распакованные отчёты до 8 МиБ / 64 файлов на архив.
+Показываются до 20 ошибок тестов. Отсутствие отчёта отображается явно.
+Скачивание: до 512 МиБ, временный файл, атомарное сохранение без перезаписи.
+Архивы не распаковываются на диск. Отчёты читаются прямо из ZIP.
+
+CLAUDE / CODEX И WORKTREE
+
+Каталог панели tmux и внутренний каталог агента могут отличаться.
+Плагин поддерживает хуки, которые передают только рабочий каталог:
+
+    ~/.tmux/plugins/tmux-gitlab-pipeline/scripts/run.sh context --hook
+
+Claude: объедините hooks из examples/claude-hooks.json со своими settings.json.
+SessionStart и UserPromptSubmit синхронизируют cwd, CwdChanged — new_cwd.
+В старой версии Claude без CwdChanged используйте первые два события.
+Codex: объедините examples/codex-hooks.json с ~/.codex/hooks.json
+или <repo>/.codex/hooks.json. Проверьте и подтвердите хуки в интерфейсе
+Codex; неподтверждённые хуки не запускаются. Не заменяйте существующий файл.
+Для нестандартного пути установки исправьте путь в примерах.
+Плагин не читает transcript_path, историю диалога или файлы окружения.
+
+Документация хуков:
+https://code.claude.com/docs/en/hooks
+https://learn.chatgpt.com/docs/hooks
+
+Без хуков при неоднозначном worktree сначала появится выбор.
+Выбор привязан к панели, её каталогу и foreground-процессу.
+После перезапуска CLI старый выбор не переносится в новый процесс.
+Вручную синхронизировать путь можно командой context --repo /absolute/path.
+
+КЕШ В ОПЕРАТИВНОЙ ПАМЯТИ
+
+Один процесс на tmux-сессию, изоляция по серверу tmux и ID сессии.
+Ключ включает host, provider, project, worktree, ветку, SHA и запуск.
+Повторный вход сразу показывает RAM-снимок с временем обновления;
+устаревшее состояние помечается, обновление идёт фоном.
+Live preview остаётся включённым. Опрос CI: каждые 5 секунд, ещё минуту
+после последнего обращения. Индикатор statusbar продлевает наблюдение.
+В отсутствие наблюдателей снимки остаются до 30 минут или вытеснения.
+
+Лимиты: кеш 64 МиБ логических данных / 256 записей, до 16 наблюдаемых
+контекстов, 4 worker, очередь 32, до 16 клиентских соединений.
+Снимок до 4 МиБ, лог до 1 МиБ. LRU, TTL, singleflight и backoff при ошибках.
+Soft limit Go heap: 192 МиБ; это не жёсткий лимит RSS всего процесса.
+При завершении сессии или смене PID сервера tmux процесс останавливается
+не позднее следующей проверки (5 секунд), запросы и дочерние CLI отменяются.
+
+На диске остаются только Unix socket и пустой startup-lock в /tmp/tmux-ci-UID;
+pipeline, jobs и логи туда не записываются. Доступ к каталогу 0700, socket 0600.
+ОС может использовать swap; плагин не управляет настройками swap системы.
+Скачанные пользователем артефакты сохраняются отдельно и не являются кешем.
+
+    scripts/run.sh cache stats
+    scripts/run.sh cache clear
+    scripts/run.sh cache stop
+
+Команды выполняются внутри нужной tmux-сессии. После stop следующий
+попап / statusbar запустит чистый процесс. При обновлении версии старый
+процесс заменяется, его кеш исчезает.
+
+ОБНОВЛЕНИЕ
+
+    ~/.tmux/plugins/tmux-gitlab-pipeline/scripts/update.sh
+
+Команда находит последний GitHub Release, проверяет SHA-256 и атомарно
+заменяет бинарник текущей платформы. Фиксированная версия: update.sh 0.5.0.
+При TPM обновите также исходники через prefix + U; архивную установку
+можно обновить распаковкой нового релиза в ~/.tmux/plugins.
+Скрипты не меняют ваши конфиги авторизации и терминала.
+
+РАЗРАБОТКА
+
+    make dev
+    make test
+    make check
+    make lint
+    make build
+    make release
+
+Все проверки и сборки выполняются в Docker. Новые Go-зависимости не добавлены.
+Публичные примеры используют вымышленные проекты и gitlab.example.com.
