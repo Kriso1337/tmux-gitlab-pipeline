@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-version=${1:-0.5.0}
+version=${1:-0.5.1}
 case "$version" in
     ''|*[!0-9.]*|.*|*..*) printf 'Invalid release version\n' >&2; exit 1 ;;
 esac

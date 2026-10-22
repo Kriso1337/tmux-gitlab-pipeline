@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 plugin_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-release=${1:-0.5.0}
+release=${1:-0.5.1}
 case "$release" in ''|*[!0-9.]*|.*|*..*) printf 'Invalid release version\n' >&2; exit 1 ;; esac
 platform=$(uname -s | tr '[:upper:]' '[:lower:]')
 case "$platform" in darwin|linux) ;; *) printf 'Unsupported platform\n' >&2; exit 1 ;; esac

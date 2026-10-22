@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -77,7 +76,7 @@ type Model struct {
 	follow           bool
 	searching        bool
 	query            string
-	searchNotice     string
+	search           logSearch
 	worktreeQuery    string
 	worktreeRow      int
 	worktreeLoading  bool
@@ -297,7 +296,12 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err == nil {
 			m.trace = msg.trace
 			m.lines = strings.Split(clean(msg.trace.Text), "\n")
-			m.offset = min(m.offset, max(0, len(m.lines)-m.logHeight()))
+			m.updateSearch()
+			lastOffset := max(0, len(m.lines)-m.logHeight())
+			if m.search.current > 0 {
+				lastOffset = max(0, len(m.lines)-1)
+			}
+			m.offset = min(m.offset, lastOffset)
 		}
 		job, ok := m.selected()
 		if ok && (!job.Status.Finished() || msg.err != nil) {
@@ -324,6 +328,7 @@ func (m *Model) clearTrace() {
 	m.offset, m.horizontal = 0, 0
 	m.follow = true
 	m.traceLoading = false
+	m.query, m.searching, m.search = "", false, logSearch{}
 }
 
 func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
@@ -376,7 +381,7 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 			m.searching = false
 		case "enter":
 			m.searching = false
-			m.find(false)
+			m.find(searchFromViewport)
 		case "backspace":
 			if m.query != "" {
 				_, size := utf8.DecodeLastRuneInString(m.query)
@@ -386,6 +391,9 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 			if msg.Text != "" {
 				m.query += msg.Text
 			}
+		}
+		if m.search.query != strings.ToLower(m.query) {
+			m.updateSearch()
 		}
 		return nil
 	}
@@ -430,9 +438,11 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 		case "/":
 			m.searching = true
 			m.query = ""
-			m.searchNotice = ""
+			m.search = logSearch{}
 		case "n":
-			m.find(true)
+			m.find(searchForward)
+		case "N", "shift+n":
+			m.find(searchBackward)
 		case "r":
 			return m.loadTrace()
 		}
@@ -501,25 +511,4 @@ func (m *Model) scroll(delta int) {
 	}
 	m.follow = false
 	m.offset = max(0, min(max(0, len(m.lines)-m.logHeight()), m.offset+delta))
-}
-
-func (m *Model) find(next bool) {
-	if m.query == "" || len(m.lines) == 0 {
-		return
-	}
-	start := m.offset
-	if next {
-		start++
-	}
-	for i := range len(m.lines) {
-		index := (start + i) % len(m.lines)
-		if strings.Contains(strings.ToLower(m.lines[index]), strings.ToLower(m.query)) {
-			m.follow = false
-			m.offset = index
-			m.horizontal = 0
-			m.searchNotice = fmt.Sprintf("строка %d", index+1)
-			return
-		}
-	}
-	m.searchNotice = "не найдено"
 }

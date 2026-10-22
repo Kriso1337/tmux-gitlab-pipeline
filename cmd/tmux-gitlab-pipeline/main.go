@@ -32,7 +32,7 @@ import (
 	"tmux-gitlab-pipeline/internal/tui"
 )
 
-var version = "0.5.0-dev"
+var version = "0.5.1-dev"
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

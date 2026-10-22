@@ -487,7 +487,12 @@ func (m *Model) logView(header []string, width int) string {
 	}
 	lines := make([]string, 0, height)
 	for i := start; i < min(len(m.lines), start+height); i++ {
-		line := ansi.TruncateLeft(m.lines[i], m.horizontal, "")
+		line := m.lines[i]
+		if m.search.current > 0 && i == m.search.line {
+			first, last := m.searchSpan()
+			line = line[:first] + lipgloss.NewStyle().Foreground(p.accent).Bold(true).Underline(true).Render(line[first:last]) + line[last:]
+		}
+		line = ansi.TruncateLeft(line, m.horizontal, "")
 		lines = append(lines, paint(fmt.Sprintf("%5d │ ", i+1), p.muted)+clip(line, width-8))
 	}
 	if len(m.lines) == 0 {
@@ -522,12 +527,19 @@ func (m *Model) logView(header []string, width int) string {
 	errorLine := paint(strings.Join(problems, " · "), p.red)
 	searchLine := ""
 	if m.query != "" || m.searching {
-		searchLine = paint("/"+oneLine(m.query)+"  "+m.searchNotice, p.accent)
+		query := oneLine(m.query)
+		if m.searching {
+			query += "▏"
+		}
+		searchLine = paint(m.searchStatus()+"  /"+query, p.accent)
+		if m.search.current > 0 {
+			searchLine = beside(searchLine, paint(fmt.Sprintf("строка %d", m.search.line+1), p.muted), width)
+		}
 	}
-	if m.searching {
-		searchLine += "▏"
+	keys := []string{m.keyHint("esc", "назад"), m.keyHint("/", "поиск"), m.keyHint("n", "далее"), m.keyHint("Shift+N", "назад")}
+	if width < 64 {
+		keys = []string{m.keyHint("esc", ""), m.keyHint("/", ""), m.keyHint("n", "→"), m.keyHint("Shift+N", "←")}
 	}
-	keys := []string{m.keyHint("esc", "назад")}
 	if m.options.OpenChange != nil {
 		label := "MR"
 		if m.snapshot.Provider == ci.GitHub {
@@ -535,7 +547,7 @@ func (m *Model) logView(header []string, width int) string {
 		}
 		keys = append(keys, m.keyHint("m", label))
 	}
-	keys = append(keys, m.keyHint("/", "поиск"), m.keyHint("f", "следовать"), m.keyHint("↑↓", "прокрутка"), m.keyHint("←→", "строка"))
+	keys = append(keys, m.keyHint("f", "следовать"), m.keyHint("↑↓", "прокрутка"), m.keyHint("←→", "строка"))
 	footer := []string{paint(clip(info, width), p.muted), clip(errorLine, width), clip(searchLine, width), clip(strings.Join(keys, "  "), width)}
 	return lipgloss.NewStyle().Padding(0, 2).Render(strings.Join(header, "\n") + "\n\n" + strings.Join(lines, "\n") + "\n" + strings.Join(footer, "\n"))
 }

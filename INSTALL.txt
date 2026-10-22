@@ -1,4 +1,4 @@
-tmux-gitlab-pipeline 0.5.0
+tmux-gitlab-pipeline 0.5.1
 
 GitLab CI и GitHub Actions в попапе tmux для текущей ветки и worktree.
 macOS/Linux, ARM64/AMD64. Готовые релизы не требуют Go или Docker.
@@ -19,7 +19,7 @@ macOS/Linux, ARM64/AMD64. Готовые релизы не требуют Go и�
 
     set -g @plugin 'Kriso1337/tmux-gitlab-pipeline'
 
-Нажмите prefix + I. При первом запуске плагин скачает бинарник 0.5.0
+Нажмите prefix + I. При первом запуске плагин скачает бинарник 0.5.1
 для вашей платформы и проверит SHA-256 из GitHub Release.
 TPM: https://github.com/tmux-plugins/tpm
 
@@ -31,7 +31,7 @@ TPM: https://github.com/tmux-plugins/tpm
     cd ~/Downloads
     shasum -a 256 -c SHA256SUMS --ignore-missing
     mkdir -p ~/.tmux/plugins
-    tar -xzf tmux-gitlab-pipeline_0.5.0_all-platforms.tar.gz -C ~/.tmux/plugins
+    tar -xzf tmux-gitlab-pipeline_0.5.1_all-platforms.tar.gz -C ~/.tmux/plugins
 
 На Linux можно использовать sha256sum -c SHA256SUMS --ignore-missing.
 В конфиг tmux добавьте:
@@ -109,7 +109,10 @@ workflow_dispatch требует поддержки этого события в
 обязательные inputs вводятся JSON-объектом со строковыми значениями.
 Пустая строка использует defaults. API-ошибка показывается в попапе.
 
-В логах: / поиск, n следующее совпадение, f следование,
+В логах: / поиск, n следующее совпадение, Shift+N предыдущее, f следование.
+Счётчик показывает выбранное совпадение и общее число, например 3/12.
+Учитываются все совпадения, включая несколько в одной строке; поиск циклический.
+Выбранное совпадение подчёркнуто, длинная строка прокручивается до него.
 PgUp/PgDown, Home/End прокрутка, ←→ горизонтальная прокрутка.
 GitHub публикует полный лог после завершения job; во время выполнения
 плагин постоянно обновляет статусы шагов и затем загружает итоговый лог.
@@ -185,7 +188,7 @@ pipeline, jobs и логи туда не записываются. Доступ 
     ~/.tmux/plugins/tmux-gitlab-pipeline/scripts/update.sh
 
 Команда находит последний GitHub Release, проверяет SHA-256 и атомарно
-заменяет бинарник текущей платформы. Фиксированная версия: update.sh 0.5.0.
+заменяет бинарник текущей платформы. Фиксированная версия: update.sh 0.5.1.
 При TPM обновите также исходники через prefix + U; архивную установку
 можно обновить распаковкой нового релиза в ~/.tmux/plugins.
 Скрипты не меняют ваши конфиги авторизации и терминала.
